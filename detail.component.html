@@ -1,0 +1,916 @@
+<div class="d-flex justify-content-between sticky-top bg-white p-4">
+  <div class="d-flex gap-4">
+    <div>
+      <button type="button" class="btn btn-stonex btn-outline" routerLink="/register/customer" (click)="resetForms()">
+        <i class="fa-solid fa-chevron-left fa-xl filter-blue"></i>
+      </button>
+    </div>
+    <h1 class="my-auto fw-bold fs-2">Adicionar cliente</h1>
+  </div>
+  <div class="d-flex flex-column flex-xxl-row align-items-end gap-3">
+    <div class="d-flex gap-4">
+      <div>
+        <button class="btn btn-stonex btn-fill px-5" style="width: 272px"
+          (click)="isEditingCustomer ? saveCustomer() : addCustomer()">
+          <span class="ms-2 fw-bold">{{
+            isEditingCustomer ? "Salvar alterações" : "Cadastrar cliente"
+            }}</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="vw-content p-4">
+  <div class="basic-data border border-stonex rounded p-4 mb-4 position-relative">
+    <div class="position-absolute top-0 translate-middle-y bg-white fw-bold fs-4 p-1">
+      Dados básicos
+    </div>
+    <form [formGroup]="basicDataForm">
+      <div class="d-flex justify-content-end">
+        <div class="form-check me-3">
+          <input class="form-check-input border border-black" type="checkbox" value="" id="BloqueadoRegistroBolsa"
+            formControlName="BloqueadoRegistroBolsa" />
+          <label class="form-check-label" for="BloqueadoRegistroBolsa">
+            Bloqueio Registro Bolsa
+          </label>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input border border-black" type="checkbox" value="" id="CadastroResumido"
+            formControlName="CadastroResumido" />
+          <label class="form-check-label" for="CadastroResumido">
+            Cadastro Resumido
+          </label>
+        </div>
+      </div>
+      <div class="mb-3 fw-bold">Conta</div>
+      <div class="d-flex gap-3 mb-3">
+        <div class="form-floating">
+          <input type="text" class="form-control border border-black" id="SINACORCodigo" placeholder="SINACOR código"
+            formControlName="SINACORCodigo" (focusout)="consultSinacor()" [ngClass]="{
+              'is-invalid': basicDataForm.get('SINACORCodigo')?.errors,
+              'border border-black': !basicDataForm.get('SINACORCodigo')?.errors
+            }" />
+          <label for="SINACORCodigo">SINACOR código</label>
+        </div>
+        <div class="form-floating">
+          <input type="text" class="form-control border border-black" id="EUAGrupoContaCodigo"
+            placeholder="EUA Grupo Conta Código" formControlName="EUAGrupoContaCodigo" />
+          <label for="EUAGrupoContaCodigo">EUA Grupo Conta Código</label>
+        </div>
+        <div class="form-floating">
+          <input type="text" class="form-control border border-black" id="EUAContaCodigo" placeholder="EUA Conta Código"
+            formControlName="EUAContaCodigo" />
+          <label for="EUAContaCodigo">EUA Conta Código</label>
+        </div>
+      </div>
+      <div class="mb-3 fw-bold" *ngIf="!isCadastroResumido()">EUA subConta</div>
+      <div class="d-flex mb-3" *ngIf="!isCadastroResumido()">
+        <div class="form-floating me-3">
+          <input type="text" class="form-control" id="floatingUser" placeholder="EUA SubConta Código"
+            formControlName="EUASubContas" [ngClass]="{
+              'is-invalid':
+                basicDataForm.controls['EUASubContas'].touched &&
+                basicDataForm.controls['EUASubContas'].value === '',
+              'border border-black':
+                !basicDataForm.controls['EUASubContas'].touched ||
+                basicDataForm.controls['EUASubContas'].value !== ''
+            }" />
+          <label for="floatingUser">EUA SubConta Código</label>
+        </div>
+        <button type="button" class="btn btn-stonex btn-fill fw-bold text-white" style="height: 58px"
+          (click)="addSubAccount()">
+          Adicionar
+        </button>
+      </div>
+      <div *ngIf="!isCadastroResumido()">
+        <div class="section-header p-3 rounded fw-bold">SubConta</div>
+        <ul class="p-0">
+          <ng-container *ngIf="!isEditingCustomer">
+            <li *ngFor="let subconta of euaSubAccArr; index as i"
+              class="rounded border border-black p-3 d-flex justify-content-between my-2">
+              <span>{{ subconta.valor }}</span><i class="fa-solid fa-trash-can text-danger fa-lg lh-1"
+                style="cursor: pointer" (click)="removeSubAccount(i)"></i>
+            </li>
+          </ng-container>
+          <ng-container *ngIf="isEditingCustomer">
+            <li *ngFor="
+                let subconta of this.consultResponse?.EUASubContas;
+                index as i
+              " class="rounded border border-black p-3 d-flex justify-content-between my-2">
+              <span>{{ subconta.valor }}</span><i class="fa-solid fa-trash-can text-danger fa-lg lh-1"
+                style="cursor: pointer" (click)="removeSubAccount(i)"></i>
+            </li>
+          </ng-container>
+        </ul>
+      </div>
+      <div>
+        <div class="mb-3 fw-bold">Dados básicos</div>
+        <div class="row mb-3">
+          <div class="col-2">
+            <div class="form-floating">
+              <select class="form-select border border-black" id="floatingSelect"
+                aria-label="Floating label select example" formControlName="docType" (change)="selectNewDocLabel()">
+                <option value="cpf">CPF</option>
+                <option value="cnpj">CNPJ</option>
+                <option value="cvm">CVM</option>
+              </select>
+              <label for="floatingSelect">Doc</label>
+            </div>
+          </div>
+          <div class="col-2">
+            <div class="form-floating">
+              <input type="text" class="form-control border border-black" id="doc"
+                placeholder="Digite o {{ docTypeLabel }}" formControlName="doc" [mask]="
+                  docTypeLabel === 'CNPJ'
+                    ? '00.000.000/0000-00'
+                    : docTypeLabel === 'CPF'
+                    ? '000.000.000-00'
+                    : null
+                " (keypress)="
+                  (docTypeLabel === 'CVM'
+                    ? ''
+                    : $event.charCode >= 48 && $event.charCode < 58)
+                " />
+              <label for="doc">Digite o {{ docTypeLabel }}</label>
+            </div>
+          </div>
+          <div class="col-2">
+            <div class="form-floating">
+              <input type="text" class="form-control border border-black" id="nome" placeholder="Nome"
+                formControlName="nome" />
+              <label for="nome">Nome</label>
+            </div>
+          </div>
+          <div class="col-2" *ngIf="!isCadastroResumido()">
+            <div class="form-floating">
+              <input type="text" class="form-control border border-black" id="telefone" placeholder="Telefone"
+                formControlName="telefone" mask="+00 (00) 00000-0000" />
+              <label for="telefone">Telefone</label>
+            </div>
+          </div>
+          <div class="col-2 my-auto" *ngIf="!isCadastroResumido()">
+            <div class="form-check">
+              <input class="form-check-input border border-black" type="checkbox" value="" id="EUAResidente"
+                formControlName="EUAResidente" />
+              <label class="form-check-label" for="EUAResidente">
+                Cliente residente no país
+              </label>
+            </div>
+          </div>
+        </div>
+        <div class="row row-cols-5 mb-3">
+          <div class="col-2">
+            <div class="form-floating">
+              <select class="form-select border border-black" id="floatingSelect"
+                aria-label="Floating label select example" formControlName="Tipo">
+                <option disabled ngValue="selecione">Selecione o tipo</option>
+                <option *ngFor="let customerType of this.customerTypesResponse" [ngValue]="customerType.Codigo.valor">
+                  {{ customerType.Nome }}
+                </option>
+              </select>
+              <label for="floatingSelect">Tipo de cliente</label>
+            </div>
+          </div>
+          <div class="col-2">
+            <div class="form-floating">
+              <select class="form-select border border-black" id="floatingSelect"
+                aria-label="Floating label select example" formControlName="investidorTipo">
+                <option disabled ngValue="selecione">Selecione o tipo</option>
+                <option *ngFor="let investorType of this.investorTypesResponse" [ngValue]="investorType.Codigo.valor">
+                  {{ investorType.Nome }}
+                </option>
+              </select>
+              <label for="floatingSelect">Tipo de investidor</label>
+            </div>
+          </div>
+        </div>
+        <div class="d-flex mb-3" *ngIf="!isCadastroResumido()">
+          <div class="form-floating">
+            <input type="text" class="form-control border border-black" id="MainBroker" placeholder="MainBroker"
+              formControlName="MainBroker" list="dataListMainBroker" (change)="getMainBroker()"
+              [(ngModel)]="filterMainBroker" />
+            <datalist id="dataListMainBroker">
+              <option *ngFor="
+                  let broker of mainBrokerResponse
+                    | filterMainBroker : filterMainBroker
+                    | slice : 0 : 5
+                " [value]="broker.MainBroker"></option>
+            </datalist>
+
+            <label for="MainBroker">MainBroker</label>
+          </div>
+        </div>
+      </div>
+      <div class="table table-responsive small-table" *ngIf="!isCadastroResumido()">
+        <div id="table-header-section">
+          <p>Sharebroker</p>
+          <p>%</p>
+          <p>Time</p>
+          <p>E-mail</p>
+        </div>
+        <ng-container *ngIf="getBrokerList().length != 0">
+          <div id="table-row-section" *ngFor="let broker of getBrokerList()" [ngClass]="{'line-gray': hasProduct()}">
+            <p [title]="broker.Codigo.valor"></p>
+            <p [title]="broker.Commision + '%'"></p>
+            <p [title]="broker.TEAM.Nome"></p>
+            <p [title]="broker.TEAM.Email"></p>
+          </div>
+        </ng-container>
+        <ng-container *ngIf="getBrokerList().length == 0">
+          <div id="table-row-section" [ngClass]="{'line-gray': hasProduct()}">
+            <p [title]="getBrokerMainBroker()"></p>
+            <p title="100%"></p>
+            <p [title]=""></p>
+            <p [title]=""></p>
+          </div>
+        </ng-container>
+      </div>
+
+      <div class="d-flex justify-content-between align-items-center" *ngIf="!isCadastroResumido()">
+        <p>Produto VS Broker</p>
+        <div>
+          <button class="btn btn-stonex btn-fill px-5" (click)="openBrokerCommodityDialog()">
+            <span class="ms-2 fw-bold">Adicionar Produto</span>
+          </button>
+        </div>
+      </div>
+      <div class="table table-responsive small-table" *ngIf="!isCadastroResumido()">
+        <div id="table-header-section">
+          <p>Produto</p>
+          <p>BrokerCode</p>
+          <p>E-mail</p>
+          <p></p>
+        </div>
+        <div id="table-row-section" *ngFor="let brokerCommodity of consultResponse?.BrokerCommoditys">
+          <div> {{brokerCommodity.CommodityCodigo.valor}}</div>
+          <div> {{brokerCommodity.BrokerCodigo.valor}}</div>
+          <div> {{brokerCommodity.Email}}</div>
+          <div>
+            <button type="button" class="btn btn-outline-danger table-button"
+              (click)="deleteBrokerCommodity(brokerCommodity)">
+              <i class="bi bi-trash3-fill"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- TODO: Implementar a adição de novos brokers -->
+      <!-- <div class="mb-3 fw-bold">Broker</div>
+      <p>Produto VS Broker</p>
+      <table class="table table-stonex">
+        <thead>
+          <tr>
+            <th scope="col">Produto</th>
+            <th scope="col">BrokerCode</th>
+            <th scope="col">Adicionado</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let commodity of consultResponse?.BrokerCommoditys">
+            <td>{{ commodity.BrokerCodigo.valor }}</td>
+            <td>{{ commodity.CommodityCodigo.valor }}</td>
+            <td>
+              <input class="form-check-input border border-black" type="checkbox" value="" id="flexCheckDefault" />
+            </td>
+          </tr>
+        </tbody>
+      </table> -->
+    </form>
+  </div>
+
+  <div class="basic-data border border-stonex rounded p-4 mb-4 position-relative" *ngIf="!isCadastroResumido()">
+    <div class="position-absolute top-0 translate-middle-y bg-white fw-bold fs-4 p-1">
+      Complementos de dados do CPF
+    </div>
+    <form [formGroup]="complementCpf">
+      <div class="mb-3 fw-bold">Nacionalidade</div>
+      <div class="row row-cols-5 mb-3">
+        <div class="col">
+          <div class="form-floating">
+            <select class="form-select border border-black" id="floatingSelect"
+              aria-label="Floating label select example" formControlName="nacionalidade" (change)="getUfs()">
+              <option disabled ngValue="selecione">Selecione a nacionalidade</option>
+              <option *ngFor="let nacionality of this.nacionalityResponse" [ngValue]="nacionality.Nome">
+                {{ nacionality.Nome }}
+              </option>
+            </select>
+            <label for="floatingSelect">Nacionalidade</label>
+          </div>
+        </div>
+        <div class="col">
+          <div class="form-floating">
+            <select class="form-select border border-black" id="floatingSelect"
+              aria-label="Floating label select example" formControlName="country" (change)="getUfs()">
+              <option disabled ngValue="selecione">Selecione o país</option>
+              <option *ngFor="let country of this.countryResponse" [ngValue]="country.Sigla">
+                {{ country.Nome }}
+              </option>
+            </select>
+            <label for="floatingSelect">País</label>
+          </div>
+        </div>
+        <div class="col">
+          <div class="form-floating">
+            <select class="form-select border border-black" id="floatingSelect"
+              aria-label="Floating label select example" formControlName="birthUf" (change)="getCities()">
+              <option disabled ngValue="selecione">Selecione a UF</option>
+              <option *ngFor="let uf of this.ufResponse" [ngValue]="uf.UF">
+                {{ uf.Nome }}
+              </option>
+            </select>
+            <label for="floatingSelect">UF Nascimento</label>
+          </div>
+        </div>
+        <div class="col">
+          <div class="form-floating">
+            <select class="form-select border border-black" id="floatingSelect"
+              aria-label="Floating label select example" formControlName="birthPlace">
+              <option disabled ngValue="selecione">Selecione o local</option>
+              <option *ngFor="let city of this.cityResponse" [ngValue]="city.Nome">
+                {{ city.Nome }}
+              </option>
+            </select>
+            <label for="floatingSelect">Local Nascimento</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="mb-3 fw-bold">Filiação</div>
+      <div class="row row-cols-5 mb-3">
+        <div class="col">
+          <div class="form-floating">
+            <input type="text" class="form-control border border-black" id="floatingUser" placeholder="Pai/Responsável"
+              formControlName="pai" />
+            <label for="floatingUser">Pai/Responsável</label>
+          </div>
+        </div>
+        <div class="col">
+          <div class="form-floating">
+            <input type="text" class="form-control border border-black" id="floatingUser" placeholder="Mãe"
+              formControlName="mae" />
+            <label for="floatingUser">Mãe</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="mb-3 fw-bold">Cônjugue</div>
+      <div class="row row-cols-5 mb-3">
+        <div class="col">
+          <div class="form-floating">
+            <select class="form-select border border-black" id="floatingSelect"
+              aria-label="Floating label select example" formControlName="civilStatus" (change)="onChangeCivilStatus()">
+              <option disabled ngValue="selecione">Selecione o estado</option>
+              <option *ngFor="let civilStatus of this.civilStatusResponse" [ngValue]="civilStatus.Id.Numero">
+                {{ civilStatus.Nome }}
+              </option>
+            </select>
+            <label for="floatingSelect">Estado Civil</label>
+          </div>
+        </div>
+        <div class="col">
+          <div class="form-floating">
+            <select class="form-select border border-black" id="floatingSelect"
+              aria-label="Floating label select example" formControlName="systemMarriage">
+              <option disabled ngValue="selecione">Selecione o regime</option>
+              <option *ngFor="let systemMarriage of this.systemMarriageResponse" [ngValue]="systemMarriage.Id.Numero">
+                {{ systemMarriage.Nome }}
+              </option>
+            </select>
+            <label for="floatingSelect">Regime de Casamento</label>
+          </div>
+        </div>
+        <div class="col">
+          <div class="form-floating">
+            <input type="text" class="form-control border border-black" id="floatingUser" placeholder="Nome do Cônjuge"
+              formControlName="spouseName" />
+            <label for="floatingUser">Nome do Cônjuge</label>
+          </div>
+        </div>
+        <div class="col">
+          <div class="form-floating">
+            <input type="text" class="form-control border border-black" id="floatingUser" placeholder="CPF do Cônjuge"
+              formControlName="spouseCpf" (keypress)="($event.charCode >= 48 && $event.charCode < 58)"
+              mask="000.000.000-00" />
+            <label for="floatingUser">CPF do Cônjuge</label>
+          </div>
+        </div>
+        <div class="col">
+          <div class="form-floating">
+            <input type="date" class="form-control border border-black" id="floatingUser"
+              formControlName="spouseBirth" />
+            <label for="floatingUser" id="spouseBirth">Data Nasc. do Cônjuge</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="mb-3 fw-bold">Outras informações</div>
+      <div class="row row-cols-5 mb-3">
+        <div class="col">
+          <div class="form-floating">
+            <select class="form-select border border-black" id="floatingSelect"
+              aria-label="Floating label select example" formControlName="relatCn">
+              <option disabled ngValue="selecione">Selecione o tipo</option>
+              <option *ngFor="let relatCn of this.relatCnResponse" [ngValue]="relatCn.Codigo.valor">
+                {{ relatCn.Nome }}
+              </option>
+            </select>
+            <label for="floatingSelect">Classific. Relatórios Legais CN</label>
+          </div>
+        </div>
+        <div class="col">
+          <div class="form-floating">
+            <select class="form-select border border-black" id="floatingSelect"
+              aria-label="Floating label select example" formControlName="relatCi">
+              <option disabled ngValue="selecione">Selecione o tipo</option>
+              <option *ngFor="let relatCi of this.relatCiResponse" [ngValue]="relatCi.Codigo.valor">
+                {{ relatCi.Nome }}
+              </option>
+            </select>
+            <label for="floatingSelect">Classific. Relatórios Legais CI</label>
+          </div>
+        </div>
+        <div class="col">
+          <div class="form-floating">
+            <select class="form-select border border-black" id="floatingSelect"
+              aria-label="Floating label select example" formControlName="gender">
+              <option disabled ngValue="selecione">Selecione o sexo</option>
+              <option *ngFor="let gender of this.genderResponse" [ngValue]="gender.Id.Numero">
+                {{ gender.Nome }}
+              </option>
+            </select>
+            <label for="floatingSelect">Sexo</label>
+          </div>
+        </div>
+        <div class="col">
+          <div class="form-floating">
+            <select class="form-select border border-black" id="floatingSelect"
+              aria-label="Floating label select example" formControlName="education">
+              <option disabled ngValue="selecione">
+                Selecione a escolaridade
+              </option>
+              <option *ngFor="let education of this.educationResponse" [ngValue]="education.Id.Numero">
+                {{ education.Nome }}
+              </option>
+            </select>
+            <label for="floatingSelect">Escolaridade</label>
+          </div>
+        </div>
+        <div class="col">
+          <div class="form-floating">
+            <select class="form-select border border-black" id="floatingSelect"
+              aria-label="Floating label select example" formControlName="countryResid">
+              <option disabled ngValue="selecione">Selecione o país</option>
+              <option *ngFor="let country of this.countryResponse" [ngValue]="country.Sigla">
+                {{ country.Nome }}
+              </option>
+            </select>
+            <label for="floatingSelect">País de Residência</label>
+          </div>
+        </div>
+        <div class="col mt-3">
+          <div class="form-floating">
+            <input type="text" class="form-control border border-black" id="floatingUser" placeholder="Cargo que ocupa"
+              formControlName="occupation" />
+            <label for="floatingUser">Cargo que ocupa</label>
+          </div>
+        </div>
+        <div class="col mt-3">
+          <div class="form-floating">
+            <select class="form-select border border-black" id="floatingSelect"
+              aria-label="Floating label select example" formControlName="fieldActivity">
+              <option disabled ngValue="selecione">Selecione o ramo</option>
+              <option *ngFor="let fieldActivity of this.fieldActivityResponse" [ngValue]="fieldActivity.Id.Numero">
+                {{ fieldActivity.Nome }}
+              </option>
+            </select>
+            <label for="floatingSelect">Ramo de Atividade</label>
+          </div>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <!-- Informações de contato -->
+  <div class="basic-data border border-stonex rounded p-4 position-relative mb-4" *ngIf="!isCadastroResumido()">
+    <div class="position-absolute top-0 translate-middle-y bg-white fw-bold fs-4 p-1">
+      Informações de contato
+    </div>
+    <button class="btn btn-stonex btn-fill position-absolute text-white" style="top: 20px; right: 20px"
+      (click)="addContactInfo()">
+      Adicionar
+    </button>
+    <div class="d-flex justify-content-start align-items-center" style="margin: 4rem 0.5rem">
+      <div class="d-flex flex-column gap-3">
+        <ng-container *ngIf="isEditingCustomer">
+          <div *ngFor="let contact of consultResponse?.Contatos; index as i" class="d-flex align-items-center">
+            <span class="fw-bold me-5" *ngIf="showEditContact !== i">
+              {{ contact.valor }}
+            </span>
+            <input *ngIf="showEditContact === i" class="form-control form-control-sm border border-black me-5"
+              type="text" placeholder="Editar contato" aria-label=".form-control-sm example" [(ngModel)]="editInfoInput"
+              [ngModelOptions]="{standalone: true}" />
+            <i *ngIf="showEditContact !== i" class="fa-solid fa-pencil text-primary me-3" style="cursor: pointer"
+              (click)="editContactInfo(i)"></i>
+            <i *ngIf="showEditContact !== i" class="fa-solid fa-trash-can text-danger me-3" style="cursor: pointer"
+              (click)="removeInfoContact(i)"></i>
+            <i *ngIf="showEditContact === i" class="fa-solid fa-check text-success me-3" style="cursor: pointer"
+              (click)="confirmEditContactInfo(i)"></i>
+            <i *ngIf="showEditContact === i" class="fa-solid fa-xmark text-danger me-3" style="cursor: pointer"
+              (click)="this.toggleEditContact(i)"></i>
+          </div>
+        </ng-container>
+        <ng-container *ngIf="!isEditingCustomer">
+          <div *ngFor="let contact of contatoArr; index as i" class="d-flex align-items-center">
+            <span class="fw-bold me-5" *ngIf="showEditContact !== i">
+              {{ contact.valor }}
+            </span>
+            <input *ngIf="showEditContact === i" class="form-control form-control-sm border border-black me-5"
+              type="text" placeholder="Editar contato" aria-label=".form-control-sm example" [(ngModel)]="editInfoInput"
+              [ngModelOptions]="{standalone: true}" />
+            <i *ngIf="showEditContact !== i && i >= contatoArrLength" class="fa-solid fa-pencil text-primary me-3"
+              style="cursor: pointer" (click)="editContactInfo(i)"></i>
+            <i *ngIf="showEditContact !== i && i >= contatoArrLength" class="fa-solid fa-trash-can text-danger me-3"
+              style="cursor: pointer" (click)="removeInfoContact(i)"></i>
+            <i *ngIf="showEditContact === i" class="fa-solid fa-check text-success me-3" style="cursor: pointer"
+              (click)="confirmEditContactInfo(i)"></i>
+            <i *ngIf="showEditContact === i" class="fa-solid fa-xmark text-danger me-3" style="cursor: pointer"
+              (click)="this.toggleEditContact(i)"></i>
+          </div>
+        </ng-container>
+        <div class="d-flex align-items-center justify-content-center" *ngIf="addInfo">
+          <input class="form-control form-control-sm border border-black" type="text" placeholder="Novo contato"
+            aria-label=".form-control-sm example" [(ngModel)]="addInfoInput" [ngModelOptions]="{standalone: true}" />
+          <i class="fa-solid fa-check text-success ms-3" style="cursor: pointer" (click)="confirmAddContactInfo()"></i>
+          <i class="fa-solid fa-xmark text-danger ms-3" style="cursor: pointer" (click)="this.addInfo = false"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="basic-data border border-stonex rounded p-4 position-relative mb-4" *ngIf="!isCadastroResumido()">
+    <div class="position-absolute top-0 translate-middle-y bg-white fw-bold fs-4 p-1">
+      Residência
+    </div>
+    <button class="btn btn-stonex btn-fill position-absolute text-white" style="top: 20px; right: 20px"
+      (click)="this.addResidencia = true">
+      Adicionar
+    </button>
+    <div style="margin: 4rem 0.5rem" class="d-flex flex-column gap-5">
+      <ng-container *ngIf="isEditingCustomer">
+        <div *ngFor="let locale of consultResponse?.Residencias; let index = index">
+          <div class="d-flex justify-content-start align-items-center mb-3">
+            <span class="fw-bold me-5"> Endereço {{ index + 1 }}</span>
+            <i class="fa-solid fa-pencil text-primary me-3" style="cursor: pointer" (click)="editResidencia(index)"
+              *ngIf="showEditResidencia !== index"></i>
+            <i class="fa-solid fa-trash-can text-danger me-3" style="cursor: pointer" (click)="removeResidencia(index)"
+              *ngIf="showEditResidencia !== index"></i>
+            <i class="fa-solid fa-check text-success me-3" style="cursor: pointer"
+              (click)="confirmEditResidencia(index)" *ngIf="showEditResidencia === index"></i>
+            <i class="fa-solid fa-xmark text-danger me-3" style="cursor: pointer" (click)="toggleEditResidencia(index)"
+              *ngIf="showEditResidencia === index"></i>
+          </div>
+
+          <div class="d-flex justify-content-start align-items-center mb-3">
+            <span class="me-3" *ngIf="showEditResidencia !== index">
+              <span class="fw-bold">Destino:</span>
+              {{ locale.Destino.Descricao }}
+            </span>
+            <div class="d-flex align-items-center me-3" *ngIf="showEditResidencia === index">
+              <label for="destino" class="me-3 fw-bold">Destino:</label>
+              <select class="form-select form-select-sm border border-black" [(ngModel)]="editDestinoInput"
+                style="width: 180px;" (change)="getUfsAddResid()" [ngModelOptions]="{standalone: true}">
+                <option disabled ngValue="selecione">Selecione o destino</option>
+                <option *ngFor="let destination of this.destinationResponse" [ngValue]="destination.Nome">
+                  {{ destination.Nome }}
+                </option>
+              </select>
+            </div>
+            <span class="me-3" *ngIf="showEditResidencia !== index">
+              <span class="fw-bold">País:</span> {{ locale.Pais.Nome }}
+            </span>
+            <div class="d-flex align-items-center me-3" *ngIf="showEditResidencia === index">
+              <label for="pais" class="me-3 fw-bold">País:</label>
+              <select class="form-select form-select-sm border border-black" [(ngModel)]="editPaisInput"
+                style="width: 180px;" (change)="getUfsAddResid()" [ngModelOptions]="{standalone: true}">
+                <option disabled ngValue="selecione">Selecione o país</option>
+                <option *ngFor="let country of this.countryResponse" [ngValue]="country.Sigla">
+                  {{ country.Nome }}
+                </option>
+              </select>
+            </div>
+            <span class="me-3" *ngIf="showEditResidencia !== index">
+              <span class="fw-bold">CEP:</span> {{ locale.CEP }}
+            </span>
+            <div class="d-flex align-items-center me-3" *ngIf="showEditResidencia === index">
+              <label for="cep" class="me-3 fw-bold">CEP:</label>
+              <input class="form-control form-control-sm border border-black" type="text" id="cep"
+                aria-label=".form-control-sm example" [(ngModel)]="editCepInput" mask="00000-000"
+                [ngModelOptions]="{standalone: true}" />
+            </div>
+          </div>
+
+          <div class="d-flex justify-content-start align-items-center mb-3">
+            <span class="me-3" *ngIf="showEditResidencia !== index"><span class="fw-bold">Logradouro:</span>
+              {{ locale.Logradouro }}</span>
+            <div class="d-flex align-items-center me-3" *ngIf="showEditResidencia === index">
+              <label for="logradouro" class="me-3 fw-bold">Logradouro:</label>
+              <input class="form-control form-control-sm border border-black" type="text" id="logradouro"
+                aria-label=".form-control-sm example" [(ngModel)]="editLogradouroInput"
+                [ngModelOptions]="{standalone: true}" />
+            </div>
+          </div>
+
+          <div class="d-flex justify-content-start align-items-center mb-3">
+            <span class="me-3" *ngIf="showEditResidencia !== index"><span class="fw-bold">Estado:</span> {{
+              locale.Estado.UF }}</span>
+            <div class="d-flex align-items-center me-3" *ngIf="showEditResidencia === index">
+              <label for="estado" class="me-3 fw-bold">Estado:</label>
+              <select class="form-select form-select-sm border border-black" [(ngModel)]="editEstadoInput"
+                style="width: 180px;" (change)="getCitiesAddResid()"
+                [disabled]="editEstadoInput === 'EX' || editPaisInput === 'selecione' || editEstadoInput === 'selecione'"
+                [ngModelOptions]="{standalone: true}">
+                <option disabled ngValue="selecione">Selecione o estado</option>
+                <option *ngFor="let uf of this.ufAddResidResponse" [ngValue]="uf.UF">
+                  {{ uf.Nome }}
+                </option>
+              </select>
+            </div>
+          </div>
+
+          <div class="d-flex justify-content-start align-items-center">
+            <span class="me-3" *ngIf="showEditResidencia !== index"><span class="fw-bold">Cidade:</span>
+              {{ locale.Cidade.Nome }}</span>
+            <div class="d-flex align-items-center me-3" *ngIf="showEditResidencia === index">
+              <label for="cidade" class="me-3 fw-bold">Cidade:</label>
+              <select class="form-select form-select-sm border border-black" [(ngModel)]="editCidadeInput"
+                style="width: 180px;" [disabled]="editEstadoInput === 'selecione' || editEstadoInput === 'EX'"
+                [ngModelOptions]="{standalone: true}">
+                <option disabled ngValue="">Selecione o estado</option>
+                <option *ngFor="let city of this.cityAddResidResponse" [ngValue]="city.Nome">
+                  {{ city.Nome }}
+                </option>
+              </select>
+            </div>
+            <span class="me-3" *ngIf="showEditResidencia !== index">
+              <span class="fw-bold">Bairro:</span> {{ locale.Bairro }}
+            </span>
+            <div class="d-flex align-items-center me-3" *ngIf="showEditResidencia === index">
+              <label for="bairro" class="me-3 fw-bold">Bairro:</label>
+              <input class="form-control form-control-sm border border-black" type="text" id="bairro"
+                aria-label=".form-control-sm example" [(ngModel)]="editBairroInput"
+                [ngModelOptions]="{standalone: true}" />
+            </div>
+          </div>
+        </div>
+      </ng-container>
+      <ng-container *ngIf="!isEditingCustomer">
+        <div *ngFor="let locale of residArr; let index = index">
+          <div class="d-flex justify-content-start align-items-center mb-3">
+            <span class="fw-bold me-5"> Endereço {{ index + 1 }}</span>
+            <i class="fa-solid fa-pencil text-primary me-3" style="cursor: pointer" (click)="editResidencia(index)"
+              *ngIf="showEditResidencia !== index && index >= residArrLength"></i>
+            <i class="fa-solid fa-trash-can text-danger me-3" style="cursor: pointer" (click)="removeResidencia(index)"
+              *ngIf="showEditResidencia !== index && index >= residArrLength"></i>
+            <i class="fa-solid fa-check text-success me-3" style="cursor: pointer"
+              (click)="confirmEditResidencia(index)" *ngIf="showEditResidencia === index"></i>
+            <i class="fa-solid fa-xmark text-danger me-3" style="cursor: pointer" (click)="toggleEditResidencia(index)"
+              *ngIf="showEditResidencia === index"></i>
+          </div>
+
+          <div class="d-flex justify-content-start align-items-center mb-3">
+            <span class="me-3" *ngIf="showEditResidencia !== index">
+              <span class="fw-bold">Destino:</span>
+              {{ locale.Destino.Descricao }}
+            </span>
+            <div class="d-flex align-items-center me-3" *ngIf="showEditResidencia === index">
+              <label for="destino" class="me-3 fw-bold">Destino:</label>
+              <select class="form-select form-select-sm border border-black" [(ngModel)]="editDestinoInput"
+                style="width: 180px;" (change)="getUfsAddResid()" [ngModelOptions]="{standalone: true}">
+                <option disabled ngValue="selecione">Selecione o destino</option>
+                <option *ngFor="let destination of this.destinationResponse" [ngValue]="destination.Nome">
+                  {{ destination.Nome }}
+                </option>
+              </select>
+            </div>
+            <span class="me-3" *ngIf="showEditResidencia !== index">
+              <span class="fw-bold">País:</span> {{ locale.Pais.Nome }}
+            </span>
+            <div class="d-flex align-items-center me-3" *ngIf="showEditResidencia === index">
+              <label for="pais" class="me-3 fw-bold">País:</label>
+              <select class="form-select form-select-sm border border-black" [(ngModel)]="editPaisInput"
+                style="width: 180px;" (change)="getUfsAddResid()" [ngModelOptions]="{standalone: true}">
+                <option disabled ngValue="selecione">Selecione o país</option>
+                <option *ngFor="let country of this.countryResponse" [ngValue]="country.Sigla">
+                  {{ country.Nome }}
+                </option>
+              </select>
+            </div>
+            <span class="me-3" *ngIf="showEditResidencia !== index">
+              <span class="fw-bold">CEP:</span> {{ locale.CEP }}
+            </span>
+            <div class="d-flex align-items-center me-3" *ngIf="showEditResidencia === index">
+              <label for="cep" class="me-3 fw-bold">CEP:</label>
+              <input class="form-control form-control-sm border border-black" type="text" id="cep"
+                aria-label=".form-control-sm example" [(ngModel)]="editCepInput" mask="00000-000"
+                [ngModelOptions]="{standalone: true}" />
+            </div>
+          </div>
+
+          <div class="d-flex justify-content-start align-items-center mb-3">
+            <span class="me-3" *ngIf="showEditResidencia !== index"><span class="fw-bold">Logradouro:</span>
+              {{ locale.Logradouro }}</span>
+            <div class="d-flex align-items-center me-3" *ngIf="showEditResidencia === index">
+              <label for="logradouro" class="me-3 fw-bold">Logradouro:</label>
+              <input class="form-control form-control-sm border border-black" type="text" id="logradouro"
+                aria-label=".form-control-sm example" [(ngModel)]="editLogradouroInput"
+                [ngModelOptions]="{standalone: true}" />
+            </div>
+          </div>
+
+          <div class="d-flex justify-content-start align-items-center mb-3">
+            <span class="me-3" *ngIf="showEditResidencia !== index"><span class="fw-bold">Estado:</span> {{
+              locale.Estado.UF }}</span>
+            <div class="d-flex align-items-center me-3" *ngIf="showEditResidencia === index">
+              <label for="estado" class="me-3 fw-bold">Estado:</label>
+              <select class="form-select form-select-sm border border-black" [(ngModel)]="editEstadoInput"
+                style="width: 180px;" (change)="getCitiesAddResid()"
+                [disabled]="editPaisInput === 'EX' || editPaisInput === 'selecione'"
+                [ngModelOptions]="{standalone: true}">
+                <option disabled ngValue="selecione">Selecione o estado</option>
+                <option *ngFor="let uf of this.ufAddResidResponse" [ngValue]="uf.UF">
+                  {{ uf.Nome }}
+                </option>
+              </select>
+            </div>
+          </div>
+
+          <div class="d-flex justify-content-start align-items-center">
+            <span class="me-3" *ngIf="showEditResidencia !== index"><span class="fw-bold">Cidade:</span>
+              {{ locale.Cidade.Nome }}</span>
+            <div class="d-flex align-items-center me-3" *ngIf="showEditResidencia === index">
+              <label for="cidade" class="me-3 fw-bold">Cidade:</label>
+              <select class="form-select form-select-sm border border-black" [(ngModel)]="editCidadeInput"
+                style="width: 180px;" [disabled]="editEstadoInput === 'selecione' || editEstadoInput === 'EX'"
+                [ngModelOptions]="{standalone: true}">
+                <option disabled ngValue="">Selecione o estado</option>
+                <option *ngFor="let city of this.cityAddResidResponse" [ngValue]="city.Nome">
+                  {{ city.Nome }}
+                </option>
+              </select>
+            </div>
+            <span class="me-3" *ngIf="showEditResidencia !== index">
+              <span class="fw-bold">Bairro:</span> {{ locale.Bairro }}
+            </span>
+            <div class="d-flex align-items-center me-3" *ngIf="showEditResidencia === index">
+              <label for="bairro" class="me-3 fw-bold">Bairro:</label>
+              <input class="form-control form-control-sm border border-black" type="text" id="bairro"
+                aria-label=".form-control-sm example" [(ngModel)]="editBairroInput"
+                [ngModelOptions]="{standalone: true}" />
+            </div>
+          </div>
+        </div>
+      </ng-container>
+      <div *ngIf="addResidencia">
+        <div class="d-flex justify-content-start align-items-center mb-3">
+          <span class="fw-bold me-5"> Endereço</span>
+          <i class="fa-solid fa-check text-success me-3" style="cursor: pointer" (click)="confirmAddResidencia()"></i>
+          <i class="fa-solid fa-xmark text-danger me-3" style="cursor: pointer" (click)="cancelAddResidencia()"></i>
+        </div>
+
+        <div class="d-flex justify-content-start align-items-center mb-3">
+          <div class="d-flex align-items-center me-3">
+            <label for="destino" class="me-3 fw-bold">Destino:</label>
+            <select class="form-select form-select-sm border border-black" [(ngModel)]="editDestinoInput"
+              style="width: 180px;" (change)="getUfsAddResid()" [ngModelOptions]="{standalone: true}">
+              <option disabled ngValue="selecione">Selecione o destino</option>
+              <option *ngFor="let destination of this.destinationResponse" [ngValue]="destination.Nome">
+                {{ destination.Nome }}
+              </option>
+            </select>
+          </div>
+          <div class="d-flex align-items-center me-3">
+            <select class="form-select form-select-sm border border-black" [(ngModel)]="editPaisInput"
+              style="width: 180px;" (change)="getUfsAddResid()" [ngModelOptions]="{standalone: true}">
+              <option disabled ngValue="selecione">Selecione o país</option>
+              <option *ngFor="let country of this.countryResponse" [ngValue]="country.Sigla">
+                {{ country.Nome }}
+              </option>
+            </select>
+          </div>
+          <div class="d-flex align-items-center me-3">
+            <label for="cep" class="me-3 fw-bold">CEP:</label>
+            <input class="form-control form-control-sm border border-black" type="text" id="cep"
+              aria-label=".form-control-sm example" [(ngModel)]="editCepInput" mask="00000-000"
+              [ngModelOptions]="{standalone: true}" />
+          </div>
+        </div>
+
+        <div class="d-flex justify-content-start align-items-center mb-3">
+          <div class="d-flex align-items-center me-3">
+            <label for="logradouro" class="me-3 fw-bold">Logradouro:</label>
+            <input class="form-control form-control-sm border border-black" type="text" id="logradouro"
+              aria-label=".form-control-sm example" [(ngModel)]="editLogradouroInput"
+              [ngModelOptions]="{standalone: true}" />
+          </div>
+        </div>
+
+        <div class="d-flex justify-content-start align-items-center mb-3">
+          <div class="d-flex align-items-center me-3">
+            <label for="estado" class="me-3 fw-bold">Estado:</label>
+            <select class="form-select form-select-sm border border-black" [(ngModel)]="editEstadoInput"
+              style="width: 180px;" (change)="getCitiesAddResid()"
+              [disabled]="editPaisInput === 'EX' || editPaisInput === 'selecione'"
+              [ngModelOptions]="{standalone: true}">
+              <option disabled ngValue="selecione">Selecione o estado</option>
+              <option *ngFor="let uf of this.ufAddResidResponse" [ngValue]="uf.UF">
+                {{ uf.Nome }}
+              </option>
+            </select>
+          </div>
+        </div>
+
+        <div class="d-flex justify-content-start align-items-center">
+          <div class="d-flex align-items-center me-3">
+            <label for="cidade" class="me-3 fw-bold">Cidade:</label>
+            <select class="form-select form-select-sm border border-black" [(ngModel)]="editCidadeInput"
+              style="width: 180px;" [disabled]="editEstadoInput === 'selecione'" [ngModelOptions]="{standalone: true}">
+              <option disabled ngValue="selecione">Selecione o estado</option>
+              <option *ngFor="let city of this.cityAddResidResponse" [ngValue]="city.Nome">
+                {{ city.Nome }}
+              </option>
+            </select>
+          </div>
+          <div class="d-flex align-items-center me-3">
+            <label for="bairro" class="me-3 fw-bold">Bairro:</label>
+            <input class="form-control form-control-sm border border-black" type="text" id="bairro"
+              aria-label=".form-control-sm example" [(ngModel)]="editBairroInput"
+              [ngModelOptions]="{standalone: true}" />
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <form [formGroup]="cetipForm" class="basic-data border border-stonex rounded p-4 position-relative mb-4">
+    <div class="position-absolute top-0 translate-middle-y bg-white fw-bold fs-4 p-1">
+      CETIP
+    </div>
+    <div class="mb-3 fw-bold">Conta</div>
+    <div class="row row-cols-3 gap-3 mb-4">
+      <div class="col">
+        <div class="form-floating">
+          <input type="text" class="form-control border border-black" id="floatingUser" placeholder="Conta própria"
+            formControlName="account" mask="00000.00-0" />
+          <label for="floatingUser">Conta própria</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="d-flex justify-content-start align-items-center mb-3">
+      <span class="fw-bold">Tributação</span>
+    </div>
+    <div class="d-flex justify-content-start align-items-center gap-3 mb-3">
+      <div>
+        <span>Isento de IOF</span>
+        <div class="d-flex">
+          <div class="form-check me-3">
+            <input class="form-check-input border border-black" type="radio" name="iof" id="iof1" value="iofy"
+              formControlName="iof" />
+            <label class="form-check-label" for="iof1"> Sim </label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input border border-black" type="radio" name="iof" id="iof2" value="iofn"
+              formControlName="iof" />
+            <label class="form-check-label" for="iof2"> Não </label>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <span>Isento de IFR</span>
+        <div class="d-flex">
+          <div class="form-check me-3">
+            <input class="form-check-input border border-black" type="radio" name="ifr" id="ifr1" value="ifry"
+              formControlName="ifr" />
+            <label class="form-check-label" for="ifr1"> Sim </label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input border border-black" type="radio" name="ifr" id="ifr2" value="ifrn"
+              formControlName="ifr" />
+            <label class="form-check-label" for="ifr2"> Não </label>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="form-check">
+      <input class="form-check-input border border-black" type="checkbox" value="" id="flexCheckDefault"
+        formControlName="active" />
+      <label class="form-check-label text-danger" for="flexCheckDefault">
+        Inativar cliente<i class="fa-solid fa-triangle-exclamation ms-2"></i>
+      </label>
+    </div>
+  </form>
+</div>
+<app-add-broker-commodity-dialog [(modalOpened)]="brokerCommodityDialogOpened"
+  (saveEvent)="onSaveAddBrokerCommodity($event)" [brokerCommodityList]="consultResponse?.BrokerCommoditys">
+</app-add-broker-commodity-dialog>
