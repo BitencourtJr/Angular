@@ -506,9 +506,14 @@
             <span class="fw-bold me-5" *ngIf="showEditContact !== i">
               {{ contact.valor }}
             </span>
-            <input *ngIf="showEditContact === i" class="form-control form-control-sm border border-black me-5"
-              type="text" placeholder="Editar contato" aria-label=".form-control-sm example" [(ngModel)]="editInfoInput"
-              [ngModelOptions]="{standalone: true}" />
+            <input *ngIf="showEditContact === i"
+                   class="form-control form-control-sm border border-black me-5"
+                   type="text"
+                   placeholder="Editar contato"
+                   aria-label=".form-control-sm example"
+                   [(ngModel)]="editInfoInput"
+                   [formControl]="emailControl"
+                   [ngClass]="{'is-invalid': emailControl.invalid}" />
             <i *ngIf="showEditContact !== i" class="fa-solid fa-pencil text-primary me-3" style="cursor: pointer"
               (click)="editContactInfo(i)"></i>
             <i *ngIf="showEditContact !== i" class="fa-solid fa-trash-can text-danger me-3" style="cursor: pointer"
@@ -524,9 +529,14 @@
             <span class="fw-bold me-5" *ngIf="showEditContact !== i">
               {{ contact.valor }}
             </span>
-            <input *ngIf="showEditContact === i" class="form-control form-control-sm border border-black me-5"
-              type="text" placeholder="Editar contato" aria-label=".form-control-sm example" [(ngModel)]="editInfoInput"
-              [ngModelOptions]="{standalone: true}" />
+            <input *ngIf="showEditContact === i"
+                   class="form-control form-control-sm border border-black me-5"
+                   type="email"
+                   placeholder="Editar contato"
+                   aria-label=".form-control-sm example"
+                   [(ngModel)]="editInfoInput"
+                   [formControl]="emailControl"
+                   [ngClass]="{'is-invalid': emailControl.invalid}" />
             <i *ngIf="showEditContact !== i && i >= contatoArrLength" class="fa-solid fa-pencil text-primary me-3"
               style="cursor: pointer" (click)="editContactInfo(i)"></i>
             <i *ngIf="showEditContact !== i && i >= contatoArrLength" class="fa-solid fa-trash-can text-danger me-3"
@@ -538,14 +548,93 @@
           </div>
         </ng-container>
         <div class="d-flex align-items-center justify-content-center" *ngIf="addInfo">
-          <input class="form-control form-control-sm border border-black" type="text" placeholder="Novo contato"
-            aria-label=".form-control-sm example" [(ngModel)]="addInfoInput" [ngModelOptions]="{standalone: true}" />
+          <input class="form-control form-control-sm border border-black"
+                 type="email"
+                 placeholder="Novo email"
+                 aria-label=".form-control-sm example"
+                 [(ngModel)]="addInfoInput"
+                 [formControl]="emailControl"
+                 [ngClass]="{'is-invalid': emailControl.invalid}" />
           <i class="fa-solid fa-check text-success ms-3" style="cursor: pointer" (click)="confirmAddContactInfo()"></i>
           <i class="fa-solid fa-xmark text-danger ms-3" style="cursor: pointer" (click)="this.addInfo = false"></i>
         </div>
       </div>
     </div>
   </div>
+
+  <!-- Informações telefone -->
+  <div class="basic-data border border-stonex rounded p-4 position-relative mb-4" *ngIf="!isCadastroResumido()">
+    <div class="position-absolute top-0 translate-middle-y bg-white fw-bold fs-4 p-1">
+      Telefone de Contato
+    </div>
+    <button class="btn btn-stonex btn-fill position-absolute text-white" style="top: 20px; right: 20px"
+      (click)="addPhoneContacInfo()">
+      Adicionar
+    </button>
+    <div class="d-flex justify-content-start align-items-center" style="margin: 4rem 0.5rem">
+      <div class="d-flex flex-column gap-3">
+        <ng-container *ngIf="isEditingCustomer">
+          <div *ngFor="let contact of phoneResponse?.Contatos; index as i" class="d-flex align-items-center">
+            <span class="fw-bold me-5" *ngIf="showEditPhoneContact !== i">
+              {{ contact.valor }}
+            </span>
+            <input *ngIf="showEditPhoneContact === i"
+                   class="form-control form-control-sm border border-black me-5"
+                   type="text"
+                   placeholder="Editar telefone"
+                   aria-label=".form-control-sm example"
+                   [(ngModel)]="editPhoneInfoInput"
+                   [formControl]="phoneControl"
+                   [ngClass]="{'is-invalid': phoneControl.invalid}" />
+            <i *ngIf="showEditPhoneContact !== i" class="fa-solid fa-pencil text-primary me-3" style="cursor: pointer"
+              (click)="editPhoneContactInfo(i)"></i>
+            <i *ngIf="showEditPhoneContact !== i" class="fa-solid fa-trash-can text-danger me-3" style="cursor: pointer"
+              (click)="removeInfoPhoneContact(i)"></i>
+            <i *ngIf="showEditPhoneContact === i" class="fa-solid fa-check text-success me-3" style="cursor: pointer"
+              (click)="confirmEditPhoneContactInfo(i)"></i>
+            <i *ngIf="showEditPhoneContact === i" class="fa-solid fa-xmark text-danger me-3" style="cursor: pointer"
+              (click)="this.toggleEditPhoneContact(i)"></i>
+          </div>
+        </ng-container>
+        <ng-container *ngIf="!isEditingCustomer">
+          <div *ngFor="let contact of phoneArr; index as i" class="d-flex align-items-center">
+            <span class="fw-bold me-5" *ngIf="showEditPhoneContact !== i">
+              {{ contact.valor }}
+            </span>
+            <input *ngIf="showEditPhoneContact === i"
+                   class="form-control form-control-sm border border-black me-5"
+                   type="telefone"
+                   placeholder="Editar telefone"
+                   aria-label=".form-control-sm example"
+                   [(ngModel)]="editPhoneInfoInput"
+                   [formControl]="phoneControl"
+                   [ngClass]="{'is-invalid': phoneControl.invalid}" />
+            <i *ngIf="showEditPhoneContact !== i && i >= phoneArrLength" class="fa-solid fa-pencil text-primary me-3"
+              style="cursor: pointer" (click)="editPhoneContactInfo(i)"></i>
+            <i *ngIf="showEditPhoneContact !== i && i >= phoneArrLength" class="fa-solid fa-trash-can text-danger me-3"
+              style="cursor: pointer" (click)="removeInfoPhoneContact(i)"></i>
+            <i *ngIf="showEditPhoneContact === i" class="fa-solid fa-check text-success me-3" style="cursor: pointer"
+              (click)="confirmEditPhoneContactInfo(i)"></i>
+            <i *ngIf="showEditPhoneContact === i" class="fa-solid fa-xmark text-danger me-3" style="cursor: pointer"
+              (click)="this.toggleEditPhoneContact(i)"></i>
+          </div>
+        </ng-container>
+        <div class="d-flex align-items-center justify-content-center" *ngIf="addPhoneInfo">
+          <input class="form-control form-control-sm border border-black"
+                 type="telefone"
+                 placeholder="Novo telefone"
+                 aria-label=".form-control-sm example"
+                 [(ngModel)]="addPhoneInfoInput"
+                 [formControl]="phoneControl"
+                 [ngClass]="{'is-invalid': phoneControl.invalid}" />
+          <i class="fa-solid fa-check text-success ms-3" style="cursor: pointer" (click)="confirmAddPhoneContactInfo()"></i>
+          <i class="fa-solid fa-xmark text-danger ms-3" style="cursor: pointer" (click)="this.addPhoneInfo = false"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Fim Informações telefone -->
 
   <div class="basic-data border border-stonex rounded p-4 position-relative mb-4" *ngIf="!isCadastroResumido()">
     <div class="position-absolute top-0 translate-middle-y bg-white fw-bold fs-4 p-1">

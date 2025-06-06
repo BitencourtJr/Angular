@@ -1,6 +1,7 @@
 import { formatDate } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
-import { FormBuilder, FormGroup } from '@angular/forms';
+import { FormBuilder, FormControl, FormGroup, Validators } from '@angular/forms';
+import { phoneValidator  } from 'src/app/helpers/phone.validator';
 import { ActivatedRoute, Router } from '@angular/router';
 import { City } from 'src/app/models/city';
 import { CivilStatus } from 'src/app/models/civil-status';
@@ -39,8 +40,11 @@ export class DetailComponent implements OnInit {
   basicDataForm!: FormGroup;
   complementCpf!: FormGroup;
   cetipForm!: FormGroup;
+  emailControl!: FormControl;
+  phoneControl!: FormControl;
 
   consultResponse: DetailCustomer | undefined;
+  phoneResponse: DetailCustomer | undefined;
 
   customerTypesResponse: CustomerType[] | undefined;
   investorTypesResponse: InvestorType[] | undefined;
@@ -61,6 +65,7 @@ export class DetailComponent implements OnInit {
   nacionalityResponse: Destination[] | undefined;
 
   contatoArrLength: number = 0;
+  phoneArrLength: number = 0;
   residArrLength: number = 0;
 
   isEditingCustomer: boolean = false;
@@ -68,11 +73,15 @@ export class DetailComponent implements OnInit {
   singleStatus: boolean = false;
 
   addInfo: boolean = false;
+  addPhoneInfo: boolean = false;
   addResidencia: boolean = false;
   addInfoInput: string = '';
+  addPhoneInfoInput: string = '';
   editInfoInput: string = '';
+  editPhoneInfoInput: string = '';
   euaSubAccountInput: string = '';
   showEditContact!: number;
+  showEditPhoneContact!: number;
   showEditResidencia!: number;
 
   editDestinoInput: string = 'selecione';
@@ -91,11 +100,13 @@ export class DetailComponent implements OnInit {
   euaSubAccArr: CvmNumero[] = [];
   residArr: Residencia[] = [];
   contatoArr: Contato[] = [];
+  phoneArr: Contato[] = [];
   sharedBrokerArr: ShareBroker[] = [];
 
   searchCommodityBrokerValue: string = "";
 
   brokerCommodityDialogOpened: boolean = false;
+  
 
   constructor(
     private fb: FormBuilder,
@@ -105,11 +116,16 @@ export class DetailComponent implements OnInit {
     private router: Router
   ) { }
 
+  
   addCustomer() {
+
+console.log("CadastroResumido",this.basicDataForm.get('CadastroResumido')?.value);
+
     let addObj: DetailCustomer = {
       TelefonePrincipal: this.basicDataForm.get('telefone')?.value,
       Residencias: this.residArr,
-      Contatos: this.contatoArr,
+      //Contatos: this.contatoArr,
+      Contatos:[...this.contatoArr, ...this.phoneArr],
       IDT: {
         ID: {
           Numero: 0.0,
@@ -128,7 +144,7 @@ export class DetailComponent implements OnInit {
         Estado: 'True',
         BloqueadoRegistroBolsa: this.basicDataForm.get('BloqueadoRegistroBolsa')
           ?.value,
-        CadastroResumido: this.basicDataForm.get('CadastroResumido')?.value,
+        CadastroResumido: false, /* this.basicDataForm.get('CadastroResumido')?.value*/
       },
       EUASubContas: this.euaSubAccArr,
       CPF: {
@@ -319,6 +335,15 @@ export class DetailComponent implements OnInit {
     }
   }
 
+  
+  toggleEditPhoneContact(index: number) {
+    if (this.showEditPhoneContact == index) {
+      this.showEditPhoneContact = -1;
+    } else {
+      this.showEditPhoneContact = index;
+    }
+  }
+
   toggleEditResidencia(index: number) {
     if (this.showEditResidencia == index) {
       this.showEditResidencia = -1;
@@ -479,15 +504,33 @@ export class DetailComponent implements OnInit {
   }
 
   editContactInfo(index: number) {
+    this.addInfo = false;
     this.toggleEditContact(index);
     if (this.isEditingCustomer) {
       this.editInfoInput = this.consultResponse!.Contatos[index].valor;
     } else {
       this.editInfoInput = this.contatoArr[index].valor;
     }
+    this.emailControl.setValue(this.editInfoInput);
+  }
+
+    editPhoneContactInfo(index: number) {
+    this.addPhoneInfo = false;
+    this.toggleEditPhoneContact(index);
+    if (this.isEditingCustomer) {
+      this.editPhoneInfoInput = this.phoneResponse!.Contatos[index].valor;
+    } else {
+      this.editPhoneInfoInput = this.phoneArr[index].valor;
+    }
+    this.phoneControl.setValue(this.editPhoneInfoInput);
   }
 
   confirmEditContactInfo(index: number) {
+    if (this.emailControl.invalid) {
+      this.toastService.showErrorToast('Email inválido');
+      return;
+    }
+
     this.toggleEditContact(index);
     if (this.isEditingCustomer) {
       this.consultResponse!.Contatos[index].valor = this.editInfoInput;
@@ -496,32 +539,108 @@ export class DetailComponent implements OnInit {
     }
   }
 
+  confirmEditPhoneContactInfo(index: number) {
+    if (this.phoneControl.invalid) {
+      this.toastService.showErrorToast('Telefone inválido');
+      return;
+    }
+
+    this.toggleEditPhoneContact(index);
+    if (this.isEditingCustomer) {
+      this.phoneResponse!.Contatos[index].valor = this.editPhoneInfoInput;
+    } else {
+      this.phoneArr[index].valor = this.editPhoneInfoInput;
+    }
+  }
+    
+
   addContactInfo() {
     this.addInfo = true;
+    this.showEditContact = -1;
+    this.emailControl.setValue('');
+  }
+
+  addPhoneContacInfo() {
+    this.addPhoneInfo = true;
+    this.showEditPhoneContact = -1;
+    this.phoneControl.setValue('');
   }
 
   confirmAddContactInfo() {
-    if (this.addInfoInput.trim().length <= 2) {
-      this.toastService.showErrorToast('Digite mais de 3 caracteres');
-      return;
-    }
-    this.addInfo = false;
-    let objContact = {
-      ID: {
-        Numero: 0,
-      },
-      valor: this.addInfoInput,
-    };
-    this.contatoArr.push(objContact);
-    this.consultResponse?.Contatos.push(objContact);
-    this.addInfoInput = '';
+  const email = this.addInfoInput.trim();
+
+  if (email.length <= 2) {
+    this.toastService.showErrorToast('Digite mais de 3 caracteres');
+    return;
   }
+
+  if (this.emailControl.invalid) {
+    this.toastService.showErrorToast('Email inválido');
+    return;
+  }
+
+  // Verifica se o e-mail já foi adicionado anteriormente
+  if (this.contatoArr.some(c => c.valor === email)) {
+    this.toastService.showErrorToast('E-mail já adicionado');
+    return;
+  }
+
+  this.addInfo = false;
+
+  const objContact = {
+    ID: { Numero: 0 },
+    valor: email,
+  };
+
+  this.contatoArr.push(objContact);
+  // this.consultResponse?.Contatos.push(objContact);
+  this.addInfoInput = '';
+}
 
   removeInfoContact(index: number) {
     if (this.isEditingCustomer) {
       this.consultResponse?.Contatos.splice(index, 1);
     } else {
       this.contatoArr.splice(index, 1);
+    }
+  }
+
+  confirmAddPhoneContactInfo() {
+  const phone = this.addPhoneInfoInput.trim();
+
+  if (phone.length <= 2) {
+    this.toastService.showErrorToast('Digite mais de 3 caracteres');
+    return;
+  }
+
+  if (this.phoneControl.invalid) {
+    this.toastService.showErrorToast('Telefone inválido');
+    return;
+  }
+
+  // Verifica se o telefone já foi adicionado anteriormente
+  if (this.phoneArr.some(c => c.valor === phone)) {
+    this.toastService.showErrorToast('Telefone já adicionado');
+    return;
+  }
+
+  this.addPhoneInfo = false;
+
+  const objContact = {
+    ID: { Numero: 0 },
+    valor: phone,
+  };
+
+  this.phoneArr.push(objContact);
+   //this.phoneResponse?.Contatos.push(objContact);
+  this.addPhoneInfoInput = '';
+}
+
+   removeInfoPhoneContact(index: number) {
+    if (this.isEditingCustomer) {
+      this.phoneResponse?.Contatos.splice(index, 1);
+    } else {
+      this.phoneArr.splice(index, 1);
     }
   }
 
@@ -662,9 +781,6 @@ export class DetailComponent implements OnInit {
       });
   }
 
-
-
-
   ngOnInit(): void {
     this.getSelects();
 
@@ -742,12 +858,20 @@ export class DetailComponent implements OnInit {
       active: [false],
     });
 
+    this.emailControl = new FormControl('', {validators: Validators.email});
+    this.phoneControl = new FormControl('', [Validators.required, phoneValidator()]);
+
     const id = this.route.snapshot.paramMap.get('id');
     if (id !== null) {
       this.isEditingCustomer = true;
       this.registerService.consultById(id).subscribe({
         next: (response) => {
           this.consultResponse = response;
+          this.phoneResponse = response;
+
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+          this.contatoArr = response.Contatos.filter(c => emailRegex.test(c.valor));
+          this.phoneArr = response.Contatos.filter(c => !emailRegex.test(c.valor));
 
           this.basicDataForm.patchValue({
             BloqueadoRegistroBolsa: response.IDT.BloqueadoRegistroBolsa,
@@ -969,16 +1093,6 @@ export class DetailComponent implements OnInit {
           this.cetipForm.reset();
           this.toastService.showSuccessToast('Encontrado no SINACOR');
           this.contatoArr = response.Contatos;
-          response.Telefones.forEach((element) => {
-            let obj = {
-              ID: {
-                Numero: 0,
-              },
-              valor: `+${element.Telefone.PaisCodigo} (${element.Telefone.DDDCodigo}) ${element.Telefone.Numero}`,
-            };
-            this.contatoArr.push(obj);
-          }
-          )
           this.euaSubAccArr = response.EUASubContas;
           this.residArr = response.Residencias;
           this.contatoArrLength = this.contatoArr ? this.contatoArr.length : 0;
